@@ -116,6 +116,10 @@ class sfp_zetalytics(SpiderFootPlugin):
     def query_email_address(self, email_address):
         return self.request("/email_address", {"q": email_address})
 
+    def query_ns2domains(self, ns_domain):
+        return self.request("/ns2domain", {"q": ns_domain})
+
+
     def generate_subdomains_events(self, data, pevent):
         if not isinstance(data, dict):
             return False
@@ -219,6 +223,7 @@ class sfp_zetalytics(SpiderFootPlugin):
             if self.generate_hostname_events(data, event):
                 self.emit("RAW_RIR_DATA", json.dumps(data), event)
 
+
         elif eventName == "DOMAIN_NAME":
             data = self.query_subdomains(eventData)
             if self.generate_subdomains_events(data, event):
@@ -227,6 +232,14 @@ class sfp_zetalytics(SpiderFootPlugin):
             data = self.query_email_domain(eventData)
             if self.generate_email_domain_events(data, event):
                 self.emit("RAW_RIR_DATA", json.dumps(data), event)
+            ns_data = self.query_ns2domains(eventData)
+            if ns_data and isinstance(ns_data.get("results"), list):
+                for r in ns_data["results"]:
+                    domain = r.get("domain")
+                    if isinstance(domain, str) and domain != eventData:
+                        self.emit("AFFILIATE_DOMAIN_NAME", domain, event)
+                self.emit("RAW_RIR_DATA", json.dumps(ns_data), event)
+
 
         elif eventName == "EMAILADDR":
             data = self.query_email_address(eventData)

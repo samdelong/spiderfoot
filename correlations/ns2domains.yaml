@@ -1,0 +1,32 @@
+id: ns2domains
+version: 1
+meta:
+  name: Domains Sharing Same Nameserver
+  description: >
+    Domains that use the same nameserver as another domain in your scan,
+    suggesting possible ownership, hosting relationship, or infrastructure reuse.
+    This rule relies on the `sfp_zetalytics` module emitting AFFILIATE_DOMAIN_NAME
+    results based on the `/ns2domains` endpoint.
+  risk: INFO
+
+collections:
+  - collect:
+      - method: exact
+        field: type
+        value: AFFILIATE_DOMAIN_NAME
+      - method: regex
+        field: source.type
+        value: DOMAIN_NAME
+
+aggregation:
+  field: source.data
+
+analysis:
+  - method: threshold
+    field: data
+    minimum: 2
+    count_unique_only: true
+
+headline:
+  text: Domains sharing nameserver with {source.data}
+
