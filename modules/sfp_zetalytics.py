@@ -55,10 +55,10 @@ class sfp_zetalytics(SpiderFootPlugin):
             self.opts.update(userOpts)
 
     def watchedEvents(self):
-        return ["INTERNET_NAME", "DOMAIN_NAME", "EMAILADDR"]
+        return ["INTERNET_NAME", "DOMAIN_NAME", "EMAILADDR", "IP_ADDRESS"]
 
     def producedEvents(self):
-        return ["INTERNET_NAME", "AFFILIATE_DOMAIN_NAME", "INTERNET_NAME_UNRESOLVED"]
+        return ["INTERNET_NAME", "AFFILIATE_DOMAIN_NAME", "INTERNET_NAME_UNRESOLVED", "IP_ADDRESS"]
 
     def emit(self, etype, data, pevent):
         if self.checkForStop():
@@ -105,7 +105,7 @@ class sfp_zetalytics(SpiderFootPlugin):
         return None
 
     def query_subdomains(self, domain):
-        return self.request("/subdomains", {"q": domain})
+        return self.request("/subdomains", {"q": domain, "vvv": "true"})
 
     def query_hostname(self, hostname):
         return self.request("/hostname", {"q": hostname})
@@ -301,9 +301,17 @@ class sfp_zetalytics(SpiderFootPlugin):
 
 
         elif eventName == "DOMAIN_NAME":
-            data = self.query_subdomains(eventData)
-            if self.generate_subdomains_events(data, event):
-                self.emit("RAW_RIR_DATA", json.dumps(data), event)
+            sd = self.query_subdomains(eventData)
+            if sd and isinstance(sd.get("results"), list):
+                for entry in sd["results"]:
+                    for rec in entry.get("records", []):
+                        if rec.get("rrtype") in ("a", "AAAA"):
+                            ip = rec.get("value")
+                            if isinstance(ip, str):
+                                self.emit("IP_ADDRESS", ip, event)
+                self.emit("RAW_RIR_DATA", json.dumps(sd), event)
+            if self.generate_subdomains_events(sd, event):
+                self.emit("RAW_RIR_DATA", json.dumps(sd), event)
 
             data = self.query_email_domain(eventData)
             if self.generate_email_domain_events(data, event):
@@ -347,7 +355,21 @@ class sfp_zetalytics(SpiderFootPlugin):
             glue_records = self.query_domain2nsglue(eventData)
             if glue_records:
                 self.emit("RAW_RIR_DATA", json.dumps(glue_records), event)
-
+        elif eventName == "IP_ADDRESS":
+            ipnsglue = self.query_ip2nsglue(eventData)
+            if ipnsglue:
+                self.emit("RAW_RIR_DATA", json.dumps(ipnsglue), event)
+            pwhois = self.query_ip2pwhois(eventData)
+            if pwhois:
+                self.emit("RAW_RIR_DATA", json.dumps(pwhois), event)
+            ip = self.query_ip(eventData)
+            if ip:
+                if ip and isinstance(ip.get("results"), list):
+                    for r in ip["results"]:
+                        domain = r.get("qname")
+                        if isinstance(domain, str) and domain != eventData:
+                            self.emit("AFFILIATE_DOMAIN_NAME", domain, event)
+                self.emit("RAW_RIR_DATA", json.dumps(ip), event)
 
         elif eventName == "EMAILADDR":
             data = self.query_email_address(eventData)
