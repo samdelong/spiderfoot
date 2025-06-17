@@ -304,6 +304,7 @@ class sfp_zetalytics(SpiderFootPlugin):
             sd = self.query_subdomains(eventData)
             if sd and isinstance(sd.get("results"), list):
                 for entry in sd["results"]:
+                    self.emit("AFFILIATE_DOMAIN_NAME", entry['qname'], event)
                     for rec in entry.get("records", []):
                         if rec.get("rrtype") in ("a", "AAAA"):
                             ip = rec.get("value")
