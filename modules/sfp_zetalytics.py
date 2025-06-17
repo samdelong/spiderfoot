@@ -119,6 +119,82 @@ class sfp_zetalytics(SpiderFootPlugin):
     def query_ns2domains(self, ns_domain):
         return self.request("/ns2domain", {"q": ns_domain})
 
+    def query_cname2qname(self, q):
+        return self.request("/cname2qname", {"q": q})
+
+    def query_domain2d8s(self, q):
+        return self.request("/domain2d8s", {"q": q})
+
+    def query_domain2nsglue(self, q):
+        return self.request("/domain2nsglue", {"q": q})
+
+    def query_domain2whois(self, q):
+        return self.request("/domain2whois", {"q": q})
+
+    def query_domain2aaaa(self, q):
+        return self.request("/domain2aaaa", {"q": q})
+
+    def query_domain2cname(self, q):
+        return self.request("/domain2cname", {"q": q})
+
+    def query_domain2ip(self, q):
+        return self.request("/domain2ip", {"q": q})
+
+    def query_domain2mx(self, q):
+        return self.request("/domain2mx", {"q": q})
+
+    def query_domain2ns(self, q):
+        """Query Zetalytics endpoint /domain2ns"""
+        return self.request("/domain2ns", {"q": q})
+
+    def query_domain2ptr(self, q):
+        """Query Zetalytics endpoint /domain2ptr"""
+        return self.request("/domain2ptr", {"q": q})
+
+    def query_domain2rrtypes(self, q):
+        """Query Zetalytics endpoint /domain2rrtypes"""
+        return self.request("/domain2rrtypes", {"q": q})
+
+    def query_domain2txt(self, q):
+        """Query Zetalytics endpoint /domain2txt"""
+        return self.request("/domain2txt", {"q": q})
+
+    def query_domain_zone_activity(self, q):
+        """Query Zetalytics endpoint /domain-zone-activity"""
+        return self.request("/domain-zone-activity", {"q": q})
+
+    def query_email_user(self, q):
+        """Query Zetalytics endpoint /email_user"""
+        return self.request("/email_user", {"q": q})
+
+    def query_ip2nsglue(self, q):
+        """Query Zetalytics endpoint /ip2nsglue"""
+        return self.request("/ip2nsglue", {"q": q})
+
+    def query_ip2pwhois(self, q):
+        """Query Zetalytics endpoint /ip2pwhois"""
+        return self.request("/ip2pwhois", {"q": q})
+
+    def query_ip(self, q):
+        """Query Zetalytics endpoint /ip"""
+        return self.request("/ip", {"q": q})
+
+    def query_liveDNS(self, q):
+        """Query Zetalytics endpoint /liveDNS"""
+        return self.request("/liveDNS", {"q": q})
+
+    def query_mx2domain(self, q):
+        """Query Zetalytics endpoint /mx2domain"""
+        return self.request("/mx2domain", {"q": q})
+
+    def query_ns_zone_activity(self, q):
+        """Query Zetalytics endpoint /ns-zone-activity"""
+        return self.request("/ns-zone-activity", {"q": q})
+
+    def query_ns2domain(self, q):
+        """Query Zetalytics endpoint /ns2domain"""
+        return self.request("/ns2domain", {"q": q})
+
 
     def generate_subdomains_events(self, data, pevent):
         if not isinstance(data, dict):
@@ -239,6 +315,38 @@ class sfp_zetalytics(SpiderFootPlugin):
                     if isinstance(domain, str) and domain != eventData:
                         self.emit("AFFILIATE_DOMAIN_NAME", domain, event)
                 self.emit("RAW_RIR_DATA", json.dumps(ns_data), event)
+
+            a_records = self.query_domain2ip(eventData)
+            if a_records:
+                self.emit("RAW_RIR_DATA", json.dumps(a_records), event)
+
+            aaaa_records = self.query_domain2aaaa(eventData)
+            if aaaa_records:
+                self.emit("RAW_RIR_DATA", json.dumps(aaaa_records), event)
+
+            mx_records = self.query_domain2mx(eventData)
+            if mx_records:
+                self.emit("RAW_RIR_DATA", json.dumps(mx_records), event)
+
+            cname_records = self.query_domain2cname(eventData)
+            if cname_records:
+                self.emit("RAW_RIR_DATA", json.dumps(cname_records), event)
+
+            whois_records = self.query_domain2whois(eventData)
+            if whois_records:
+                self.emit("RAW_RIR_DATA", json.dumps(whois_records), event)
+                for r in whois_records.get("results", []):
+                    email = r.get("response", {}).get("x", {}).get("owner")
+                    if email:
+                        self.emit("EMAILADDR", email, event)
+
+            d8s_records = self.query_domain2d8s(eventData)
+            if d8s_records:
+                self.emit("RAW_RIR_DATA", json.dumps(d8s_records), event)
+
+            glue_records = self.query_domain2nsglue(eventData)
+            if glue_records:
+                self.emit("RAW_RIR_DATA", json.dumps(glue_records), event)
 
 
         elif eventName == "EMAILADDR":
